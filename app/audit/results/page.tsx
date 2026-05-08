@@ -9,14 +9,52 @@ const STORAGE_KEY = 'credex_audit_form'
 
 export default function ResultsPage() {
   const [result, setResult] = useState<AuditResult | null>(null)
+  const [formData, setFormData] = useState<AuditFormData | null>(null)
+  const [email, setEmail] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [role, setRole] = useState('')
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved) {
-      const formData: AuditFormData = JSON.parse(saved)
-      setResult(runAudit(formData))
+      const data: AuditFormData = JSON.parse(saved)
+      setFormData(data)
+      setResult(runAudit(data))
     }
   }, [])
+
+  const handleSubmit = async () => {
+    if (!email) return alert('Email daalo!')
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/submit-lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          companyName,
+          role,
+          auditData: result,
+          totalMonthlySavings: result?.totalMonthlySavings,
+          totalAnnualSavings: result?.totalAnnualSavings,
+          teamSize: formData?.teamSize,
+          useCase: formData?.useCase,
+        }),
+      })
+      const data = await res.json()
+      if (data.slug) {
+        setShareUrl(`${window.location.origin}/audit/${data.slug}`)
+        setSubmitted(true)
+      }
+    } catch (err) {
+      alert('Something went wrong. Try again.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   if (!result) {
     return (
@@ -57,15 +95,13 @@ export default function ResultsPage() {
           >
             <div className="flex items-center justify-between mb-2">
               <p className="font-semibold text-gray-800">{r.tool}</p>
-              <span
-                className={`text-xs px-2 py-1 rounded-full font-medium ${
-                  r.severity === 'overspending'
-                    ? 'bg-red-100 text-red-700'
-                    : r.severity === 'minor'
-                    ? 'bg-amber-100 text-amber-700'
-                    : 'bg-green-100 text-green-700'
-                }`}
-              >
+              <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                r.severity === 'overspending'
+                  ? 'bg-red-100 text-red-700'
+                  : r.severity === 'minor'
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-green-100 text-green-700'
+              }`}>
                 {r.severity === 'overspending'
                   ? 'Overspending'
                   : r.severity === 'minor'
@@ -105,23 +141,62 @@ export default function ResultsPage() {
         </div>
       )}
 
-      {/* Honest message for low savings */}
-      {result.totalMonthlySavings < 100 && (
-        <div className="border border-gray-200 rounded-xl p-5 mb-8 text-center">
-          <p className="font-medium text-gray-700 mb-1">You are spending well</p>
-          <p className="text-sm text-gray-500 mb-3">
-            Your current AI stack looks optimized. We will notify you when better options appear.
-          </p>
-          <input
-            type="email"
-            placeholder="your@email.com"
-            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2"
-          />
-          <button className="w-full bg-gray-800 text-white py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors">
-            Notify me of new optimizations
-          </button>
-        </div>
-      )}
+      {/* Lead capture / Share section */}
+      <div className="border border-gray-200 rounded-2xl p-6 mb-8">
+        {!submitted ? (
+          <>
+            <p className="font-semibold text-gray-800 mb-1">Get your report + shareable link</p>
+            <p className="text-sm text-gray-500 mb-4">
+              Enter your email to save this audit and get a shareable URL.
+            </p>
+            {/* Honeypot — hidden field for spam protection */}
+            <input type="text" name="website" className="hidden" tabIndex={-1} />
+
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+            />
+            <input
+              type="text"
+              placeholder="Company name (optional)"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-3"
+            />
+            <input
+              type="text"
+              placeholder="Your role (optional)"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-4"
+            />
+            <button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full bg-emerald-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+            >
+              {submitting ? 'Saving...' : 'Save my audit report'}
+            </button>
+          </>
+        ) : (
+          <div className="text-center">
+            <p className="font-semibold text-gray-800 mb-2">Your report is saved!</p>
+            <p className="text-sm text-gray-500 mb-4">Share this link with your team:</p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-emerald-600 font-mono mb-3 break-all">
+              {shareUrl}
+            </div>
+            <button
+              onClick={() => navigator.clipboard.writeText(shareUrl)}
+              className="bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
+            >
+              Copy link
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Back */}
       <a
