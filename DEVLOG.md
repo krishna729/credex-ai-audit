@@ -31,3 +31,15 @@
 **Blockers / what I'm stuck on:** Anthropic API requires credits, using templated fallback for now.
 
 **Plan for tomorrow:** Deploy to Vercel, add AI summary with fallback, write tests.
+
+
+## Day 4 — 2026-05-09
+**Hours worked:** 6
+
+**What I did:** Deployed to Vercel, set up Resend transactional email, wrote 7 passing tests for audit engine, set up GitHub Actions CI pipeline.
+
+**What I learned:** Next.js ESLint is strict about <a> tags — should use <Link> component. CI/CD pipeline helps catch issues early.
+
+**Blockers / what I'm stuck on:** Anthropic API requires paid credits, using templated fallback summary for now.
+
+**Plan for tomorrow:** Write all required markdown files — ARCHITECTURE.md, REFLECTION.md, TESTS.md, GTM.md, ECONOMICS.md, LANDING_COPY.md, METRICS.md, PRICING_DATA.md, PROMPTS.md.
